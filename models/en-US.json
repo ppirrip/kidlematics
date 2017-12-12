@@ -1,0 +1,258 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "kidlematics",
+      "intents": [
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": [
+            "how can you help me",
+            "what should I do",
+            "where should I go"
+          ]
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "AskInfoIntent",
+          "samples": [
+            "tell me about yourself",
+            "what is going on",
+            "what's new",
+            "how can you help me",
+            "how can you assist me",
+            "who is Grinchearna",
+            "tell me what I need to do",
+            "remind me what I have to do",
+            "how to get the treasure back",
+            "how to get the Primality back",
+            "how to get the precious back"
+          ]
+        },
+        {
+          "name": "AskNameIntent",
+          "samples": [
+            "What is your name",
+            "tell me your nam",
+            "who are you"
+          ]
+        },
+        {
+          "name": "BuyIntent",
+          "slots": [
+            {
+              "name": "action",
+              "type": "actionType"
+            },
+            {
+              "name": "drink",
+              "type": "AMAZON.Drink"
+            }
+          ],
+          "samples": [
+            "I want to {action} a {drink}",
+            "{action} me a {drink}",
+            "{action} {drink}"
+          ]
+        },
+        {
+          "name": "HelloWorldIntent",
+          "samples": [
+            "hello",
+            "say hello",
+            "say hello world"
+          ]
+        },
+        {
+          "name": "LeaveIntent",
+          "samples": [
+            "leave the pub",
+            "bye",
+            "goodbye",
+            "let's begin the journey",
+            "exit",
+            "let's go"
+          ]
+        },
+        {
+          "name": "TalkToIntent",
+          "slots": [
+            {
+              "name": "npc",
+              "type": "npcType",
+              "samples": [
+                "{npc}",
+                "I want to talk to {npc}",
+                "go talk to {npc}",
+                "go speak to {npc}"
+              ]
+            }
+          ],
+          "samples": [
+            "go talk to {npc}",
+            "have a chat with {npc}",
+            "let's talk to {npc}",
+            "I would like to talk to {npc}",
+            "let's go to {npc}",
+            "let's walk to {npc}",
+            "walk over to {npc}"
+          ]
+        }
+      ],
+      "types": [
+        {
+          "values": [
+            {
+              "name": {
+                "value": "get",
+                "synonyms": [
+                  "grab",
+                  "fetch",
+                  "take"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "order",
+                "synonyms": [
+                  "buy"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "use",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "steal",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "break",
+                "synonyms": [
+                  "destory"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "fight",
+                "synonyms": [
+                  "kill"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "burn",
+                "synonyms": []
+              }
+            }
+          ],
+          "name": "actionType"
+        },
+        {
+          "values": [
+            {
+              "name": {
+                "value": "Munden",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "Jia",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "Dihpaz",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "Sozea",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "Boko",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "Grinchearna",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "Troll",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "Bear",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "Bandit",
+                "synonyms": []
+              }
+            }
+          ],
+          "name": "npcType"
+        }
+      ]
+    },
+    "dialog": {
+      "intents": [
+        {
+          "name": "TalkToIntent",
+          "confirmationRequired": false,
+          "slots": [
+            {
+              "name": "npc",
+              "type": "npcType",
+              "elicitationRequired": true,
+              "confirmationRequired": false,
+              "prompts": {
+                "elicitation": "Elicit.Intent-TalkToIntent.IntentSlot-npc"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "prompts": [
+      {
+        "id": "Elicit.Intent-TalkToIntent.IntentSlot-npc",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "sorry, who do you want to talk to?"
+          }
+        ]
+      }
+    ]
+  }
+}

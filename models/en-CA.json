@@ -1,0 +1,246 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "kidlematics",
+      "intents": [
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "HelloWorldIntent",
+          "samples": [
+            "hello",
+            "say hello",
+            "say hello world"
+          ]
+        },
+        {
+          "name": "MyNameIsIntent",
+          "slots": [
+            {
+              "name": "name",
+              "type": "AMAZON.US_FIRST_NAME"
+            }
+          ],
+          "samples": [
+            "my name is {name}",
+            "i am {name}",
+            "you can call me {name}"
+          ]
+        },
+        {
+          "name": "PubAskIntent",
+          "samples": [
+            "what is going on here",
+            "what should I do",
+            "where should I go",
+            "how do I begin",
+            "what can I do",
+            "who else can I talk to"
+          ]
+        },
+        {
+          "name": "PubLeaveIntent",
+          "samples": [
+            "get out of here",
+            "leave the pub",
+            "begin journey"
+          ]
+        },
+        {
+          "name": "PubOrderIntent",
+          "slots": [
+            {
+              "name": "drink",
+              "type": "drinkType"
+            },
+            {
+              "name": "action",
+              "type": "actionType"
+            }
+          ],
+          "samples": [
+            "{action} me a {drink}",
+            "{action} me something good",
+            "{action} me something strong"
+          ]
+        },
+        {
+          "name": "PubTalkIntent",
+          "slots": [
+            {
+              "name": "npc",
+              "type": "npcType",
+              "samples": [
+                "I want to talk to {npc}",
+                "talk to {npc}",
+                "{npc}"
+              ]
+            }
+          ],
+          "samples": [
+            "I want to talk to {npc}",
+            "talk to {npc}",
+            "go to {npc}"
+          ]
+        }
+      ],
+      "types": [
+        {
+          "values": [
+            {
+              "name": {
+                "value": "get",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "buy",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "grab",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "order",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "take",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "fetch",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "use",
+                "synonyms": []
+              }
+            }
+          ],
+          "name": "actionType"
+        },
+        {
+          "values": [
+            {
+              "name": {
+                "value": "beer",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "wine",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "water",
+                "synonyms": []
+              }
+            }
+          ],
+          "name": "drinkType"
+        },
+        {
+          "values": [
+            {
+              "name": {
+                "value": "Munden",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "Jia",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "Dihpaz",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "Sozea",
+                "synonyms": []
+              }
+            }
+          ],
+          "name": "npcType"
+        }
+      ]
+    },
+    "dialog": {
+      "intents": [
+        {
+          "name": "PubLeaveIntent",
+          "confirmationRequired": true,
+          "prompts": {
+            "confirmation": "Confirm.Intent-PubLeaveIntent"
+          }
+        },
+        {
+          "name": "PubTalkIntent",
+          "confirmationRequired": false,
+          "slots": [
+            {
+              "name": "npc",
+              "type": "npcType",
+              "elicitationRequired": true,
+              "confirmationRequired": false,
+              "prompts": {
+                "elicitation": "Elicit.Intent-PubTalkIntent.IntentSlot-npc"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "prompts": [
+      {
+        "id": "Confirm.Intent-PubLeaveIntent",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "Are you ready for your adventure?"
+          }
+        ]
+      },
+      {
+        "id": "Elicit.Intent-PubTalkIntent.IntentSlot-npc",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "Who do you want to talk to?"
+          }
+        ]
+      }
+    ]
+  }
+}
