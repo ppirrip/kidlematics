@@ -1,151 +1,14 @@
 'use strict';
 var Alexa = require("alexa-sdk");
-var format = require('string-format')
+var format = require('string-format');
+const setting = require('./setting');
+const npcList = require('./npc');
 
 // Generic responses
 const GENERIC_HELP = 'how may I help you';
 const GENERIC_REPROMPT = 'sorry I missed that, would you mind to repeat';
 const GENERIC_POS_ACK = [];
 const GENERIC_NEG_ACK = [];
-
-// Locations
-const COUNTRY_NAME = 'Kidlematica';
-const PUB_NAME = 'Blind Duck Pub';
-const FINAL_SCENE = 'Castle Ruin';
-
-const WAY_POINT_1 = [
-    {
-        'LOCATION': 'bridge',
-        'DESC': ['A Troll is guarding a bridge where to have to cross'],
-        'INTRO': [],
-        'MORE': [],
-        'LAST': []
-    },
-    {
-        'LOCATION': 'cave',
-        'DESC': ['A Bear is sleeping at the openning of a cave where you need to enter'],
-        'INTRO': [],
-        'MORE': [],
-        'LAST': []
-    },
-    {
-        'LOCATION': 'freeway',
-        'DESC': ['A bandit is guarding a blockade on the free way'],
-        'INTRO': [],
-        'MORE': [],
-        'LAST': []
-    },
-];
-
-const WAY_POINT_2 = [
-    {
-        'LOCATION': 'forrest',
-        'DESC': ['You are in a forrest crossing where to have to decide going left, or right'],
-        'INTRO': [],
-        'MORE': [],
-        'LAST': []
-    },
-    {
-        'LOCATION': 'underground maze',
-        'DESC': ['You are inside an underground maze where to have to decide take the left, or right'],
-        'INTRO': [],
-        'MORE': [],
-        'LAST': []
-    },
-    {
-        'LOCATION': 'ancient city ruin',
-        'DESC': ['You are inside an ancient city ruin where to have to decide going left, or right'],
-        'INTRO': [],
-        'MORE': [],
-        'LAST': []
-    },
-];
-
-// NPC dialogs
-const Boko_Dialog = {
-    'DESC': [],
-    'INTRO': [
-        'welcome stranger, we need your help',
-        'our town treasure has been stolen, please take it back for us',
-        'it is taken to the old castle ruin',
-        'do you know where to go'
-    ],
-    'MORE': [
-        'please bring back our town treasure, it is very important to us'
-    ],
-    'LAST': [
-        'please bring back our town treasure, it is very important to us'
-    ]
-};
-
-const Sozea_Dialog = {
-    'DESC': [],
-    'INTRO': [],
-    'MORE': [],
-    'LAST': []
-};
-
-const Dihpaz_Dialog = {
-    'DESC': [],
-    'INTRO': [],
-    'MORE': [],
-    'LAST': []
-};
-
-const Jia_Dialog = {
-    'DESC': [],
-    'INTRO': [],
-    'MORE': [],
-    'LAST': []
-};
-
-const Munden_Dialog = {
-    'DESC': [],
-    'INTRO': [],
-    'MORE': [],
-    'LAST': []
-};
-
-const Troll_Dialog = {
-    'DESC': [],
-    'INTRO': [],
-    'MORE': [],
-    'LAST': []
-};
-
-const Bear_Dialog = {
-    'DESC': [],
-    'INTRO': [],
-    'MORE': [],
-    'LAST': []
-};
-
-const Bandit_Dialog = {
-    'DESC': [],
-    'INTRO': [],
-    'MORE': [],
-    'LAST': []
-};
-
-const Grinchearna_Dialog = {
-    'DESC': [],
-    'INTRO': [],
-    'MORE': [],
-    'LAST': []
-};
-
-// General constants
-const NPC_LIST = {
-    'boko': Boko_Dialog, 
-    'sozea': Sozea_Dialog, 
-    'dihpaz': Dihpaz_Dialog,
-    'jia': Jia_Dialog, 
-    'munden': Munden_Dialog, 
-    'troll': Troll_Dialog, 
-    'bear': Bear_Dialog, 
-    'bandit': Bandit_Dialog,
-    'grinchearna': Grinchearna_Dialog
-};
 
 // use bind, apply or call ...
 // e.g. emitResponse.call(this,'SayGreeting', textCard, speechOutput, reprompt);
@@ -173,11 +36,10 @@ function rand(n) {
 
 function setSessionVar() {
     if(Object.keys(this.attributes).length === 0) {
-        const waypoint1 = WAY_POINT_1[rand(3)]['LOCATION'];
-        const waypoint2 = WAY_POINT_2[rand(3)]['LOCATION'];
+        const waypoint1 = setting['WAY_POINT_1'][rand(3)]['LOCATION'];
+        const waypoint2 = setting['WAY_POINT_2'][rand(3)]['LOCATION'];
 
         this.attributes['firstHelp'] = true; 
-        //this.attributes['driveState'] = [{speed:0,turn:'straight',deg:'0'}];
         this.attributes['interaction'] = [];
         this.attributes['location'] = ['Pub',waypoint1,waypoint2,'Ruin'];
     }
@@ -195,11 +57,65 @@ function addEmphsis(msg) {
     return '<emphasis level="strong">' + msg + '</emphasis>';
 }
 
+function getScence(waypoint,location) {
+    // e.g. setting['WAY_POINT_1'].filter(x => x['LOCATION'] == 'bridge')[0]
+    return setting[waypoint].filter(x => x['LOCATION'] == location)[0];
+}
+
 exports.handler = function(event, context) {
     var alexa = Alexa.handler(event, context);
-    alexa.registerHandlers(handlers);
+    alexa.registerHandlers(handlers, waypoint_1_Handlers);
     alexa.execute();
 };
+
+// states
+const states = {
+    PUB_MODE: '_PUB_MODE',
+    WP1_MODE: '_WP1_MODE',
+    WP2_MODE: '_WP2_MODE',
+    RUIN_MODE: '_RUIN_MODE'
+};
+
+// So this acts like  a mini game
+const waypoint_1_Handlers =  Alexa.CreateStateHandler(states.WP1_MODE, {
+    'AMAZON.HelpIntent': function () {
+        // new content for interacting with the scence
+    },
+    'AskInfoIntent' : function () {
+
+    },
+    'TalkToIntent' : function () {
+
+    },
+    'AnswerIntent' : function () {
+
+    },
+    'Unhandled' : function () {
+
+    },
+    'SayIntro': function (location) {
+        // the first dialog
+        console.log(this.event.request);
+        console.log(this.event.request.intent.slots);
+
+        const scence = getScence('WAY_POINT_1',location);
+
+        let msg = []; 
+        //msg.push('you arrived at the ' + this.attributes['location'][1]);
+        msg.push('you arrived at the ' + location); // this doesn't help that much
+        msg.push('and you see a ');
+        msg.push('what would like to do');
+        msg.push('you can always ask for help');
+
+        const titleCard = 'Challenge at the ' + location;
+        const textCard = msg.join(', ');
+
+        const speak = msg.map(addPTag).join('');
+        const reprompt = GENERIC_HELP;
+        emitResponse.call(this,titleCard,textCard,speak,reprompt);
+
+    }
+});
 
 var handlers = {
     'LaunchRequest': function () {
@@ -274,7 +190,7 @@ var handlers = {
 
             let textCard = '';
             let speak = '';
-            const npcDialog = NPC_LIST[npc];
+            const npcDialog = npcList['NPC_LIST'][npc];
             switch((interaction.filter(x => x['object'] == npc)).length) {
                 case 0:
                     speak = npcDialog['INTRO'].map(addPTag).join('');
@@ -312,16 +228,18 @@ var handlers = {
         console.log(this.event.request);
         console.log(this.event.request.intent.slots);
 
-        const titleCard = 'The adventure begins';
-        const textCard = 'The adventure begins';
+        //const titleCard = 'The adventure begins';
+        //const textCard = 'The adventure begins';
 
-        const speak = addPTag(textCard);
-        const reprompt = ''; // end the game here for now
-        emitResponse.call(this,titleCard,textCard,speak,reprompt);
+        //const speak = addPTag(textCard);
+        //const reprompt = ''; // end the game here for now
+        //emitResponse.call(this,titleCard,textCard,speak,reprompt);
 
+        this.handler.state = states.WP1_MODE;
+        this.emitWithState('SayIntro', this.attributes['location'][1]);
     },
     'SayHello': function () {
-        const msg1 = 'Welcome to the ' + PUB_NAME + ' at ' + COUNTRY_NAME;
+        const msg1 = 'Welcome to the ' + setting['COUNTRY_NAME'] + ' at ' + setting['COUNTRY_NAME'] + '.';
         const msg2 = 'How may I help you?';
 
         const titleCard = msg1;
@@ -350,7 +268,7 @@ var handlers = {
         let msg = []; 
         if (this.attributes['firstHelp'] == true) {
             // give the long version of help
-            msg.push('you can always ask for help in ' + COUNTRY_NAME);
+            msg.push('you can always ask for help in ' + setting['COUNTRY_NAME']);
             msg.push('for example');
             msg.push('just say what should I do');
             msg.push('or where should I go');
@@ -362,7 +280,7 @@ var handlers = {
         } else {
             // here should be stateful / context related help
             // do it later
-            msg.push("why don't you try to talk to Boko at the " + PUB_NAME);
+            msg.push("why don't you try to talk to Boko at the " + setting['COUNTRY_NAME']);
             msg.push('just say go talk to Boko');
         }
 

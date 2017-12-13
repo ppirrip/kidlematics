@@ -59,3 +59,5 @@ typings/
 
 # for Alexa
 .ask/
+test.js
+lambda/custom/index.zip
