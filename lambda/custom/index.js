@@ -1,28 +1,80 @@
 'use strict';
 var Alexa = require("alexa-sdk");
+var format = require('string-format')
 
 // Generic responses
-const GENERIC_HELP = [];
-const GENERIC_REPROMPT = [];
+const GENERIC_HELP = 'how may I help you';
+const GENERIC_REPROMPT = 'sorry I missed that, would you mind to repeat';
 const GENERIC_POS_ACK = [];
 const GENERIC_NEG_ACK = [];
 
 // Locations
 const COUNTRY_NAME = 'Kidlematica';
 const PUB_NAME = 'Blind Duck Pub';
+const FINAL_SCENE = 'Castle Ruin';
 
+const WAY_POINT_1 = [
+    {
+        'LOCATION': 'bridge',
+        'DESC': ['A Troll is guarding a bridge where to have to cross'],
+        'INTRO': [],
+        'MORE': [],
+        'LAST': []
+    },
+    {
+        'LOCATION': 'cave',
+        'DESC': ['A Bear is sleeping at the openning of a cave where you need to enter'],
+        'INTRO': [],
+        'MORE': [],
+        'LAST': []
+    },
+    {
+        'LOCATION': 'freeway',
+        'DESC': ['A bandit is guarding a blockade on the free way'],
+        'INTRO': [],
+        'MORE': [],
+        'LAST': []
+    },
+];
+
+const WAY_POINT_2 = [
+    {
+        'LOCATION': 'forrest',
+        'DESC': ['You are in a forrest crossing where to have to decide going left, or right'],
+        'INTRO': [],
+        'MORE': [],
+        'LAST': []
+    },
+    {
+        'LOCATION': 'underground maze',
+        'DESC': ['You are inside an underground maze where to have to decide take the left, or right'],
+        'INTRO': [],
+        'MORE': [],
+        'LAST': []
+    },
+    {
+        'LOCATION': 'ancient city ruin',
+        'DESC': ['You are inside an ancient city ruin where to have to decide going left, or right'],
+        'INTRO': [],
+        'MORE': [],
+        'LAST': []
+    },
+];
+
+// NPC dialogs
 const Boko_Dialog = {
     'DESC': [],
     'INTRO': [
         'welcome stranger, we need your help',
-        'our town treasure is stolen, please take it back for us',
-        'it is taken to the old castle ruin'
+        'our town treasure has been stolen, please take it back for us',
+        'it is taken to the old castle ruin',
+        'do you know where to go'
     ],
     'MORE': [
-
+        'please bring back our town treasure, it is very important to us'
     ],
     'LAST': [
-
+        'please bring back our town treasure, it is very important to us'
     ]
 };
 
@@ -113,13 +165,26 @@ function emitResponse(intentName, textCard, speak, reprompt) {
     return this.emit(':responseReady'); // added return just in case
 }
 
+//function 
+
+function rand(n) {
+    return Math.floor(Math.random() * n);
+}
+
 function setSessionVar() {
     if(Object.keys(this.attributes).length === 0) {
+        const waypoint1 = WAY_POINT_1[rand(3)]['LOCATION'];
+        const waypoint2 = WAY_POINT_2[rand(3)]['LOCATION'];
+
         this.attributes['firstHelp'] = true; 
         //this.attributes['driveState'] = [{speed:0,turn:'straight',deg:'0'}];
         this.attributes['interaction'] = [];
-        this.attributes['location'] = ["Pub"]; // initial
+        this.attributes['location'] = ['Pub',waypoint1,waypoint2,'Ruin'];
     }
+}
+
+function removeSSML (s) {
+    return s.replace(/<\/?[^>]+(>|$)/g, "");
 }
 
 function addPTag(msg) {
@@ -162,12 +227,23 @@ var handlers = {
         console.log(this.event.request);
         console.log(this.event.request.intent.slots);
 
-        // this might need to break into multiple intents
-        const intentName = 'AskInfoIntent';
-        const textCard = 'AskInfoIntent';
-        const speak = '<p>You are the hero we have been waiting!</p>';
-        const reprompt = 'Anything else you want to know?';
-        emitResponse.call(this,intentName,textCard,speak,reprompt);
+        setSessionVar.call(this);
+
+        const location = this.attributes['location'];
+        let msg = []; 
+        msg.push('You need to travel to the ' + location[1]);
+        msg.push('then the ' + location[2]);
+        msg.push('and finally to the Castle Ruin to recover the treasure');
+        msg.push('beware of the dangers along the way');
+        msg.push('that is all I know');
+        msg.push('when you are ready, just said leave the pub');
+
+        const titleCard = 'Asking for more information';
+        const textCard = msg.join(', ');
+
+        const speak = msg.map(addPTag).join('');
+        const reprompt = GENERIC_HELP;
+        emitResponse.call(this,titleCard,textCard,speak,reprompt);
     },
     'TalkToIntent': function() {
         setSessionVar.call(this); // ensure the session variables are in place
@@ -209,13 +285,15 @@ var handlers = {
                     speak = npcDialog['MORE'].map(addPTag).join('');
                     textCard = npcDialog['MORE'].join(', ');
                     interaction.push({'action':'talk', 'object':npc})
+
                     break;
                 default:
                     speak = npcDialog['LAST'].map(addPTag).join('');
                     textCard = npcDialog['LAST'].join(', ');
                     interaction.push({'action':'talk', 'object':npc})
             }
-            console.log(JSON.stringify(interaction.pop()));
+            //console.log(JSON.stringify(interaction.pop()));
+            console.log(JSON.stringify(interaction));
             emitResponse.call(this,titleCard,textCard,speak,reprompt);            
         }
     },
@@ -234,14 +312,13 @@ var handlers = {
         console.log(this.event.request);
         console.log(this.event.request.intent.slots);
 
-        // need to use confirmation here
-        const intentName = 'LeaveIntent';
-        const textCard = 'LeaveIntent';
-        // here I need to trigger to a different state and let
-        // the other intent to handle it.
-        const speak = '<p>So the adventure begins</p>';
-        const reprompt = 'what do you want to do next?';
-        emitResponse.call(this,intentName,textCard,speak,reprompt);        
+        const titleCard = 'The adventure begins';
+        const textCard = 'The adventure begins';
+
+        const speak = addPTag(textCard);
+        const reprompt = ''; // end the game here for now
+        emitResponse.call(this,titleCard,textCard,speak,reprompt);
+
     },
     'SayHello': function () {
         const msg1 = 'Welcome to the ' + PUB_NAME + ' at ' + COUNTRY_NAME;

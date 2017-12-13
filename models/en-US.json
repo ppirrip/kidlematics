@@ -11,8 +11,9 @@
           "name": "AMAZON.HelpIntent",
           "samples": [
             "how can you help me",
+            "what is going on",
             "what should I do",
-            "where should I go"
+            "what's new"
           ]
         },
         {
@@ -22,17 +23,13 @@
         {
           "name": "AskInfoIntent",
           "samples": [
-            "tell me about yourself",
-            "what is going on",
-            "what's new",
-            "how can you help me",
-            "how can you assist me",
-            "who is Grinchearna",
+            "where should I go",
             "tell me what I need to do",
             "remind me what I have to do",
             "how to get the treasure back",
             "how to get the Primality back",
-            "how to get the precious back"
+            "how to get the precious back",
+            "where to go"
           ]
         },
         {
