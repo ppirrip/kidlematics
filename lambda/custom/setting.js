@@ -8,21 +8,21 @@ module.exports = {
         {
             'LOCATION': 'bridge',
             'CHALLENGE': 'troll',
-            'DESC': ['A Troll is guarding a bridge where you have to cross'],
+            'DESC': ['You see a Troll is guarding a bridge where you have to cross'],
             'INTRO': [],
             'MORE': [],
             'LAST': []
         },
         {
             'LOCATION': 'cave',
-            'DESC': ['A Bear is sleeping at the openning of a cave where you need to enter'],
+            'DESC': ['You see a Bear is sleeping at the openning of a cave where you need to enter'],
             'INTRO': [],
             'MORE': [],
             'LAST': []
         },
         {
             'LOCATION': 'freeway',
-            'DESC': ['A bandit is guarding a blockade on the free way'],
+            'DESC': ['You see a bandit is guarding a blockade on the free way'],
             'INTRO': [],
             'MORE': [],
             'LAST': []
