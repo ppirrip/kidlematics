@@ -1,14 +1,10 @@
 'use strict';
 var Alexa = require("alexa-sdk");
-var format = require('string-format');
 const setting = require('./setting');
 const npcList = require('./npc');
+const questionList = require('./challenge');
+const genericDialog = require('./genericDialog');
 
-// Generic responses
-const GENERIC_HELP = 'how may I help you';
-const GENERIC_REPROMPT = 'sorry I missed that, would you mind to repeat';
-const GENERIC_POS_ACK = [];
-const GENERIC_NEG_ACK = [];
 
 // use bind, apply or call ...
 // e.g. emitResponse.call(this,'SayGreeting', textCard, speechOutput, reprompt);
@@ -36,12 +32,13 @@ function rand(n) {
 
 function setSessionVar() {
     if(Object.keys(this.attributes).length === 0) {
-        const waypoint1 = setting['WAY_POINT_1'][rand(3)]['LOCATION'];
-        const waypoint2 = setting['WAY_POINT_2'][rand(3)]['LOCATION'];
+        const waypoint1 = setting.get(0)[rand(3)].LOCATION;
+        const waypoint2 = setting.get(1)[rand(3)].LOCATION;
 
         this.attributes['firstHelp'] = true; 
         this.attributes['interaction'] = [];
         this.attributes['location'] = ['Pub',waypoint1,waypoint2,'Ruin'];
+        this.attributes['challenge'] = [];
     }
 }
 
@@ -57,9 +54,9 @@ function addEmphsis(msg) {
     return '<emphasis level="strong">' + msg + '</emphasis>';
 }
 
-function getScence(waypoint,location) {
-    // e.g. setting['WAY_POINT_1'].filter(x => x['LOCATION'] == 'bridge')[0]
-    return setting[waypoint].filter(x => x['LOCATION'] == location)[0];
+function arrayToSpeech(msgArr)
+{
+    return msgArr.map(addPTag).join('');
 }
 
 exports.handler = function(event, context) {
@@ -80,40 +77,75 @@ const states = {
 const waypoint_1_Handlers =  Alexa.CreateStateHandler(states.WP1_MODE, {
     'AMAZON.HelpIntent': function () {
         // new content for interacting with the scence
+        console.log(this.event.request);
+        console.log(this.event.request.intent.slots);
+
+        const scence = setting.get(0,location); 
+        const npc = scence.CHALLENGE;
+
+        let msg = []; 
+        msg.push('why don\'t you try to talk to the ' + npc + '?');
+        msg.push('just say go talk to the ' + npc + '.');
+
+        const titleCard = 'Asking for help at the ' + scence.LOCATION;
+        const textCard = msg.join(', ');
+
+        const speak = msg.map(addPTag).join('');
+        const reprompt = genericDialog.HELP[0];
+        emitResponse.call(this,titleCard,textCard,speak,reprompt);        
+    },
+    'ActionIntent' : function () {
+        // TODO: Impl this
+    },
+    'AnswerIntent': function ( ) {
+        // TODO: Impl this
     },
     'AskInfoIntent' : function () {
 
     },
     'TalkToIntent' : function () {
+        console.log(this.event.request);
+        console.log(this.event.request.intent.slots);
 
-    },
-    'AnswerIntent' : function () {
+        const scence = setting.get(0,location);
+        const npc = scence.CHALLENGE;
+        const npcDialog = npcList['NPC_LIST'].npc; // this look stupid
 
+        let msg = npcDialog.INTRO;
+
+        const titleCard = 'Challenge at the ' + location;
+        const textCard = msg.join(', ');
+
+        const speak = msg.map(addPTag).join('');
+        const reprompt = 'what are you going to do next?';
+        emitResponse.call(this,titleCard,textCard,speak,reprompt);        
     },
     'Unhandled' : function () {
-
+        // NOTE: All those not needed intent like BuyIntent handles here
+        // TODO: Impl later
     },
     'SayIntro': function (location) {
         // the first dialog
         console.log(this.event.request);
         console.log(this.event.request.intent.slots);
 
-        const scence = getScence('WAY_POINT_1',location);
+        const scence = setting.get(0,location); 
+        const npc = scence.CHALLENGE;
 
         let msg = []; 
         //msg.push('you arrived at the ' + this.attributes['location'][1]);
         msg.push('you arrived at the ' + location); // this doesn't help that much
-        msg.push('and you see a ');
-        msg.push('what would like to do');
-        msg.push('you can always ask for help');
+        msg.push(scence.DESC.map(addPTag).join());
+        msg.push('what would you like to do?');
+        msg.push('you can talk to the ' + npc);
+        msg.push('and you can always ask for help.');
 
         const titleCard = 'Challenge at the ' + location;
         const textCard = msg.join(', ');
 
         const speak = msg.map(addPTag).join('');
-        const reprompt = GENERIC_HELP;
+        const reprompt = genericDialog.REPROMPT[0];
         emitResponse.call(this,titleCard,textCard,speak,reprompt);
-
     }
 });
 
@@ -139,6 +171,9 @@ var handlers = {
         const reprompt = 'Want a drink?';
         emitResponse.call(this,intentName,textCard,speak,reprompt);
     },
+    'ActionIntent' : function () {
+        // TODO: Impl this
+    },
     'AskInfoIntent': function() {
         console.log(this.event.request);
         console.log(this.event.request.intent.slots);
@@ -158,7 +193,7 @@ var handlers = {
         const textCard = msg.join(', ');
 
         const speak = msg.map(addPTag).join('');
-        const reprompt = GENERIC_HELP;
+        const reprompt = 'Are you ready to begin your adventure? Just say leave the pub.';
         emitResponse.call(this,titleCard,textCard,speak,reprompt);
     },
     'TalkToIntent': function() {
@@ -225,28 +260,33 @@ var handlers = {
         emitResponse.call(this,intentName,textCard,speak,reprompt);        
     },
     'LeaveIntent': function () {
+        setSessionVar.call(this); // ensure the session variables are in place
         console.log(this.event.request);
         console.log(this.event.request.intent.slots);
-
-        //const titleCard = 'The adventure begins';
-        //const textCard = 'The adventure begins';
-
-        //const speak = addPTag(textCard);
-        //const reprompt = ''; // end the game here for now
-        //emitResponse.call(this,titleCard,textCard,speak,reprompt);
 
         this.handler.state = states.WP1_MODE;
         this.emitWithState('SayIntro', this.attributes['location'][1]);
     },
     'SayHello': function () {
-        const msg1 = 'Welcome to the ' + setting['COUNTRY_NAME'] + ' at ' + setting['COUNTRY_NAME'] + '.';
-        const msg2 = 'How may I help you?';
+        //const msg1 = 'Welcome to the ' + setting['COUNTRY_NAME'] + ' at ' + setting['COUNTRY_NAME'] + '.';
+        //const msg2 = 'How may I help you?';
 
-        const titleCard = msg1;
-        const textCard = msg1 + ' ' + msg2;
+        const msg = [
+            'Its a gloomy day, you have been walking through the foggy moors of Kidlematica, the soil damp from the recent rainfall.',
+            'As you enter the village you see a tavern; the \'Blind Duck Pub\', you enter in hopes of finding a bit of rest.',
+            'The smell of greasy meat, and cheap drinks fills your nose.',
+            'A small fire in the fireplace dances about creating sinister shadows of the other sparse patrons, you look over to the bar, where the barkeep waves you over.',
+            'You walk up and take a seat on the vacant stool as he pours you a glass of milk, you take it eagerly as your travels have left you very thirsty.',
+            'As you drink the barkeep tells you his name is Boko, and he has a bit of work for you.',
+            'What would you like to do?',
+            'if not sure, just say help'
+        ];
 
-        const speak = addPTag(msg1) + addPTag(msg2);
-        const reprompt = msg2;
+        const titleCard = 'Welcome to the Blind Duck Pub';
+        const textCard = msg.join(', ');
+
+        const speak = msg.map(addPTag).join('');
+        const reprompt = genericDialog.HELP[0];
         emitResponse.call(this,titleCard,textCard,speak,reprompt);
 
         //this.emit(':responseReady');
@@ -288,7 +328,7 @@ var handlers = {
         const textCard = msg.join(', ');
 
         const speak = msg.map(addPTag).join('');
-        const reprompt = GENERIC_HELP;
+        const reprompt = genericDialog.HELP[0];
         emitResponse.call(this,titleCard,textCard,speak,reprompt);
 
     },

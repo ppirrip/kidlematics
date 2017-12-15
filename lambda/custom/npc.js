@@ -1,7 +1,7 @@
 'use strict';
 
 const Boko_Dialog = {
-    'DESC': [],
+    'DESC': ['A middle age man cleaning the bar as you walk in.'],
     'INTRO': [
         'welcome stranger, we need your help',
         'our town treasure has been stolen, please take it back for us',
@@ -45,10 +45,13 @@ const Munden_Dialog = {
 };
 
 const Troll_Dialog = {
-    'DESC': [],
-    'INTRO': [],
-    'MORE': [],
-    'LAST': []
+    'DESC': ['a big green monster'],
+    'INTRO': [
+        'you must pay to cross the bridge.', 
+        'I don\'t want your gold, but I want your wit.',
+    ],
+    'MORE': ['you are dumber than I am.', 'maybe I should eat you.'],
+    'LAST': ['good, that sounds right.', 'the troll walks away from the bridge.']
 };
 
 const Bear_Dialog = {

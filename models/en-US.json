@@ -4,6 +4,28 @@
       "invocationName": "kidlematics",
       "intents": [
         {
+          "name": "ActionIntent",
+          "slots": [
+            {
+              "name": "action",
+              "type": "actionType",
+              "samples": [
+                "{action}"
+              ]
+            },
+            {
+              "name": "npc",
+              "type": "npcType"
+            }
+          ],
+          "samples": [
+            "Let's {action} the {npc}",
+            "I want to {action} the {npc}",
+            "{action} the {npc}",
+            "I would like to {action}"
+          ]
+        },
+        {
           "name": "AMAZON.CancelIntent",
           "samples": []
         },
@@ -19,6 +41,23 @@
         {
           "name": "AMAZON.StopIntent",
           "samples": []
+        },
+        {
+          "name": "AnswerIntent",
+          "slots": [
+            {
+              "name": "numeric",
+              "type": "AMAZON.NUMBER",
+              "samples": [
+                "{numeric}"
+              ]
+            }
+          ],
+          "samples": [
+            "my answer is {numeric}",
+            "the answer is {numeric}",
+            "answer is {numeric}"
+          ]
         },
         {
           "name": "AskInfoIntent",
@@ -224,6 +263,47 @@
     "dialog": {
       "intents": [
         {
+          "name": "ActionIntent",
+          "confirmationRequired": false,
+          "slots": [
+            {
+              "name": "action",
+              "type": "actionType",
+              "elicitationRequired": true,
+              "confirmationRequired": true,
+              "prompts": {
+                "confirmation": "Confirm.Intent-ActionIntent.IntentSlot-action",
+                "elicitation": "Elicit.Intent-ActionIntent.IntentSlot-action"
+              }
+            },
+            {
+              "name": "npc",
+              "type": "npcType",
+              "elicitationRequired": false,
+              "confirmationRequired": false
+            }
+          ]
+        },
+        {
+          "name": "AnswerIntent",
+          "confirmationRequired": true,
+          "prompts": {
+            "confirmation": "Confirm.Intent-AnswerIntent"
+          },
+          "slots": [
+            {
+              "name": "numeric",
+              "type": "AMAZON.NUMBER",
+              "elicitationRequired": true,
+              "confirmationRequired": true,
+              "prompts": {
+                "confirmation": "Confirm.Intent-AnswerIntent.IntentSlot-numeric",
+                "elicitation": "Elicit.Intent-AnswerIntent.IntentSlot-numeric"
+              }
+            }
+          ]
+        },
+        {
           "name": "TalkToIntent",
           "confirmationRequired": false,
           "slots": [
@@ -241,6 +321,51 @@
       ]
     },
     "prompts": [
+      {
+        "id": "Elicit.Intent-ActionIntent.IntentSlot-action",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "Sorry I missed that. What would you like to do again?"
+          }
+        ]
+      },
+      {
+        "id": "Confirm.Intent-ActionIntent.IntentSlot-action",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "Are you sure about this?"
+          }
+        ]
+      },
+      {
+        "id": "Confirm.Intent-AnswerIntent",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "are you sure this is the answer?"
+          }
+        ]
+      },
+      {
+        "id": "Elicit.Intent-AnswerIntent.IntentSlot-numeric",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "sorry I missed your answer. What is your answer?"
+          }
+        ]
+      },
+      {
+        "id": "Confirm.Intent-AnswerIntent.IntentSlot-numeric",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "are you sure {numeric} is your answer?"
+          }
+        ]
+      },
       {
         "id": "Elicit.Intent-TalkToIntent.IntentSlot-npc",
         "variations": [
