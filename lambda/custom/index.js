@@ -84,7 +84,8 @@ const waypoint_1_Handlers =  Alexa.CreateStateHandler(states.WP1_MODE, {
         const npc = scence.CHALLENGE;
 
         let msg = []; 
-        msg.push('why don\'t you try to talk to the ' + npc + '?');
+        //msg.push('why don\'t you try to talk to the ' + npc + '?');
+        msg.push(`why don\'t you try to talk to the ${npc} ?`);
         msg.push('just say go talk to the ' + npc + '.');
 
         const titleCard = 'Asking for help at the ' + scence.LOCATION;
@@ -302,13 +303,16 @@ var handlers = {
         this.emit(':responseReady');
     },
     'AMAZON.HelpIntent' : function() {
+        setSessionVar.call(this);
+        
         console.log(this.event.request);
         console.log(this.event.request.intent.slots);
 
         let msg = []; 
         if (this.attributes['firstHelp'] == true) {
             // give the long version of help
-            msg.push('you can always ask for help in ' + setting['COUNTRY_NAME']);
+            //msg.push('you can always ask for help in ' + setting['COUNTRY_NAME']);
+            msg.push(`you can always ask for help in ${setting['COUNTRY_NAME']}.`);
             msg.push('for example');
             msg.push('just say what should I do');
             msg.push('or where should I go');
