@@ -55,17 +55,27 @@ const Troll_Dialog = {
 };
 
 const Bear_Dialog = {
-    'DESC': [],
-    'INTRO': [],
-    'MORE': [],
-    'LAST': []
+    'DESC': ['a sleepy bear slept at the entrance of the cave openning.'],
+    'INTRO': [
+        'I am hungry and I am too lazy to go hunt.',
+        'I can\'t go home without food.',
+        'but I don\'t need your food, I need food for my brain',
+        'answer me this correctly and I will be on my way home.'
+    ],
+    'MORE': ['your brain is emptier than mine, maybe you should go and learn something.'],
+    'LAST': ['ah, now I can go home to share this with my kids. Bye.']
 };
 
 const Bandit_Dialog = {
-    'DESC': [],
-    'INTRO': [],
-    'MORE': [],
-    'LAST': []
+    'DESC': ['a dangerous looking man guarding the a blockade across the highway.'],
+    'INTRO': [
+        'you look as poor and I am, but matter not.',
+        'it is your smart that matter most.',
+        'share me with your brainy lot.',
+        'I will be leaving in a haste'
+    ],
+    'MORE': ['your lack of knowledge is more so than your lack of gold, you are not ready for this road to future.'],
+    'LAST': ['much ligher than gold, but knowledge is what tips the balance. you are ready for the future ahead.']
 };
 
 const Grinchearna_Dialog = {

@@ -59,6 +59,10 @@ function arrayToSpeech(msgArr)
     return msgArr.map(addPTag).join('');
 }
 
+function addLongPause(seconds) {
+    return `<break time="${seconds}s"/>`;
+}
+
 exports.handler = function(event, context) {
     var alexa = Alexa.handler(event, context);
     alexa.registerHandlers(handlers, waypoint_1_Handlers);
@@ -105,14 +109,16 @@ const waypoint_1_Handlers =  Alexa.CreateStateHandler(states.WP1_MODE, {
 
     },
     'TalkToIntent' : function () {
+        // as long as the player trigger a talk intent, just assume is talking to the npc.
         console.log(this.event.request);
         console.log(this.event.request.intent.slots);
 
         const scence = setting.get(0,location);
         const npc = scence.CHALLENGE;
-        const npcDialog = npcList['NPC_LIST'].npc; // this look stupid
+        const npcDialog = npcList['NPC_LIST'].npc;
 
         let msg = npcDialog.INTRO;
+
 
         const titleCard = 'Challenge at the ' + location;
         const textCard = msg.join(', ');
@@ -304,7 +310,7 @@ var handlers = {
     },
     'AMAZON.HelpIntent' : function() {
         setSessionVar.call(this);
-        
+
         console.log(this.event.request);
         console.log(this.event.request.intent.slots);
 
