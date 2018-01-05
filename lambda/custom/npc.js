@@ -3,10 +3,10 @@
 const Boko_Dialog = {
     'DESC': ['A middle age man cleaning the bar as you walk in.'],
     'INTRO': [
-        'welcome stranger, we need your help',
-        'our town treasure has been stolen, please take it back for us',
-        'it is taken to the old castle ruin',
-        'do you know where to go'
+        'welcome stranger, we need your help.',
+        'our town treasure has been stolen, please take it back for us.',
+        'it is taken to the old castle ruin.',
+        'please bring back our town treasure, it is very important to us.'
     ],
     'MORE': [
         'please bring back our town treasure, it is very important to us'
@@ -48,7 +48,7 @@ const Troll_Dialog = {
     'DESC': ['a big green monster'],
     'INTRO': [
         'you must pay to cross the bridge.', 
-        'I don\'t want your gold, but I want your wit.',
+        'I don\'t want your gold, but I want your wit. Answer me this.',
     ],
     'MORE': ['you are dumber than I am.', 'maybe I should eat you.'],
     'LAST': ['good, that sounds right.', 'the troll walks away from the bridge.']
@@ -72,7 +72,8 @@ const Bandit_Dialog = {
         'you look as poor and I am, but matter not.',
         'it is your smart that matter most.',
         'share me with your brainy lot.',
-        'I will be leaving in a haste'
+        'I will be leaving this post.',
+        'Answer me this.'
     ],
     'MORE': ['your lack of knowledge is more so than your lack of gold, you are not ready for this road to future.'],
     'LAST': ['much ligher than gold, but knowledge is what tips the balance. you are ready for the future ahead.']

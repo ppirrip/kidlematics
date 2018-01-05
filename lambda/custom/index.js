@@ -1,73 +1,20 @@
 'use strict';
 var Alexa = require("alexa-sdk");
 const setting = require('./setting');
-const npcList = require('./npc');
+const npc = require('./npc');
 const questionList = require('./challenge');
 const genericDialog = require('./genericDialog');
 
+const common = require('./common'); // common tools from highschooler
 
-// use bind, apply or call ...
-// e.g. emitResponse.call(this,'SayGreeting', textCard, speechOutput, reprompt);
-function emitResponse(intentName, textCard, speak, reprompt) {
-    this.response.cardRenderer(intentName,textCard);
-    if (reprompt == undefined) {
-        this.response.speak(speak);
-    } else {
-        this.response.speak(speak).listen(reprompt);
-    }
-
-    // might as well log to Cloud Watch here
-    console.log(intentName + ' : ' + textCard);
-
-    // added return just in case
-    // seems like for :elicitSlot and :confirmSlot return is explicitly required
-    return this.emit(':responseReady'); // added return just in case
-}
-
-//function 
-
-function rand(n) {
-    return Math.floor(Math.random() * n);
-}
-
-function setSessionVar() {
-    if(Object.keys(this.attributes).length === 0) {
-        const waypoint1 = setting.get(0)[rand(3)].LOCATION;
-        const waypoint2 = setting.get(1)[rand(3)].LOCATION;
-
-        this.attributes['firstHelp'] = true; 
-        this.attributes['interaction'] = [];
-        this.attributes['location'] = ['Pub',waypoint1,waypoint2,'Ruin'];
-        this.attributes['challenge'] = [];
-    }
-}
-
-function removeSSML (s) {
-    return s.replace(/<\/?[^>]+(>|$)/g, "");
-}
-
-function addPTag(msg) {
-    return '<p>' + msg + '</p>';
-}
-
-function addEmphsis(msg) {
-    return '<emphasis level="strong">' + msg + '</emphasis>';
-}
-
-function arrayToSpeech(msgArr)
-{
-    return msgArr.map(addPTag).join('');
-}
-
-function addLongPause(seconds) {
-    return `<break time="${seconds}s"/>`;
-}
-
-exports.handler = function(event, context) {
-    var alexa = Alexa.handler(event, context);
-    alexa.registerHandlers(handlers, waypoint_1_Handlers);
-    alexa.execute();
-};
+// binding to save some re-typeing
+const emitResponse = common.emitResponse;
+const rand = common.rand;
+const removeSSML = common.removeSSML;
+const addPTag = common.addPTag;
+const addEmphsis = common.addEmphsis;
+const arrayToSpeech = common.arrayToSpeech;
+const addLongPause = common.addLongPause;
 
 // states
 const states = {
@@ -77,226 +24,314 @@ const states = {
     RUIN_MODE: '_RUIN_MODE'
 };
 
+function setSessionVar() {
+    if(Object.keys(this.attributes).length === 0) {
+        //const waypoint1 = setting.get(1)[rand(3)].LOCATION;
+        //const waypoint2 = setting.get(2)[rand(3)].LOCATION;
+
+        // use constant for now
+        const waypoint1 = setting.get(1)[0].LOCATION;
+        const waypoint2 = setting.get(2)[0].LOCATION;
+
+        this.attributes['firstHelp'] = true; 
+        this.attributes['interaction'] = [];
+        this.attributes['location'] = ['Pub',waypoint1,waypoint2,'Ruin'];
+        this.attributes['challenge'] = [
+            {/* pub scence, no challenge */},
+            questionList.get(0), // use constant for now
+            questionList.get(0), // use constant for now
+            questionList.get(0)  // last question supposed to be fixed
+        ];
+        this.attributes['pass'] = false;
+    }
+}
+
+function answerPrompt(ans) {
+    // the ans array is expected like this:  ['7','6','3','1'],
+    // always four elements, with the first element is the correct answer
+    return `is the answer ${ans[0]}, ${ans[1]}, ${ans[2]} or ${ans[3]}? Say my answer is one for the first answer etc.` ;
+}
+
+function introHandler(state) {
+    const idx = state == states.WP1_MODE ? 1 : 2;
+    const location = this.attributes['location'][idx];
+    const scence = setting.get(idx,location);
+    const challenge = this.attributes['challenge'][idx]; 
+
+    let msg = [
+        `you arrived at the ${location}`,
+        scence.DESC,
+        ' ',
+        scence.INTRO,
+        ' ',
+        challenge.q,
+        answerPrompt(challenge.a),
+        'to repeat the question, just say repeat.'
+    ]; 
+
+    const speak = arrayToSpeech(msg);
+    const textCard = removeSSML(speak);
+    const titleCard = `Challenge at the ${location}`;
+    const reprompt = genericDialog.HELP[0];
+    emitResponse.call(this,titleCard,textCard,speak,reprompt);
+}
+
+function wayPointHelpHandler(state) {
+    const idx = state == states.WP1_MODE ? 1 : 2;
+    const location = this.attributes['location'][idx];
+    let msg = [
+        'Say my answer is one for the first answer etc.',
+        'to repeat the question, just say repeat.'
+    ]; 
+
+    const speak = arrayToSpeech(msg);
+    const textCard = removeSSML(speak);
+    const titleCard = `Challenge at the ${location}`;
+    const reprompt = speak;
+    emitResponse.call(this,titleCard,textCard,speak,reprompt);
+}
+
+function wayPointRepeatHandler(state) {
+    const idx = state == states.WP1_MODE ? 1 : 2;
+    const challenge = this.attributes['challenge'][idx];
+    const location = this.attributes['location'][idx];
+
+    let msg = [
+        challenge.q,
+        answerPrompt(challenge.a),
+        'to repeat the question, just say repeat the question.'
+    ]; 
+    const speak = arrayToSpeech(msg);
+    const textCard = removeSSML(speak);
+    const titleCard = `Challenge at the ${location}`;
+    const reprompt = genericDialog.HELP[0];
+    emitResponse.call(this,titleCard,textCard,speak,reprompt);
+}
+
+function wayPointRetryHandler(state) {
+    const idx = state == states.WP1_MODE ? 1 : 2;
+    this.attributes['pass'] = false;
+    // get a new challenge
+    // should be random - const for now
+    this.attributes['location'][idx] = setting.get(idx)[0].LOCATION;
+    this.attributes['challenge'][idx] = questionList.get(0); // use constant for now
+    this.emitWithState('RepeatIntent');
+}
+
+function talkToHandler(state) {
+    const idx = state == states.WP1_MODE ? 1 : 2;
+    const location = this.attributes['location'][idx];
+
+    let msg = [
+        scence.INTRO,
+        ' ',
+        challenge.q,
+        answerPrompt(challenge.a),
+        'to repeat the question, just say repeat.'
+    ]; 
+
+    const speak = arrayToSpeech(msg);
+    const textCard = removeSSML(speak);
+    const titleCard = `Challenge at the ${location}`;
+    const reprompt = genericDialog.HELP[0];
+    emitResponse.call(this,titleCard,textCard,speak,reprompt);
+}
+
+// need more handler later
+exports.handler = function(event, context) {
+    var alexa = Alexa.handler(event, context);
+    alexa.registerHandlers(handlers, waypoint_1_Handlers,waypoint_2_Handlers);
+    alexa.execute();
+};
+
+const waypoint_2_Handlers =  Alexa.CreateStateHandler(states.WP2_MODE, {
+    'SayIntro': function () {
+        console.log(this.event.request);
+        console.log(this.event.request.intent.slots);
+
+        introHandler.call(this,states.WP2_MODE);
+    },
+    'RepeatIntent': function () {
+        console.log('RepeatIntent');
+        wayPointRepeatHandler.call(this,states.WP2_MODE);
+    },
+    'RetryIntent': function () {
+        console.log('Retry Intent at  waypoint 2');
+        wayPointRetryHandler.call(this,states.WP2_MODE);
+    },
+    'TalkToIntent': function () {
+        console.log('TalkToIntent');
+        talkToHandler.call(this,states.WP2_MODE);
+    },
+    'AMAZON.HelpIntent': function () {
+        console.log('HelpIntent at waypoint 2');
+        wayPointHelpHandler.call(this,states.WP2_MODE);
+    },
+    'Unhandled' : function () {
+        console.log('Unhandled Intent at  waypoint 2');
+        this.emit('Unhandled');
+    },
+    'AMAZON.StopIntent' : function() {
+        this.emit('AMAZON.StopIntent')
+    },
+    'AMAZON.CancelIntent' : function() {
+        this.emit('AMAZON.CancelIntent')
+    }
+});
+
 // So this acts like  a mini game
 const waypoint_1_Handlers =  Alexa.CreateStateHandler(states.WP1_MODE, {
     'AMAZON.HelpIntent': function () {
-        // new content for interacting with the scence
-        console.log(this.event.request);
-        console.log(this.event.request.intent.slots);
-
-        const scence = setting.get(0,location); 
-        const npc = scence.CHALLENGE;
-
-        let msg = []; 
-        //msg.push('why don\'t you try to talk to the ' + npc + '?');
-        msg.push(`why don\'t you try to talk to the ${npc} ?`);
-        msg.push('just say go talk to the ' + npc + '.');
-
-        const titleCard = 'Asking for help at the ' + scence.LOCATION;
-        const textCard = msg.join(', ');
-
-        const speak = msg.map(addPTag).join('');
-        const reprompt = genericDialog.HELP[0];
-        emitResponse.call(this,titleCard,textCard,speak,reprompt);        
-    },
-    'ActionIntent' : function () {
-        // TODO: Impl this
+        console.log('HelpIntent at waypoint 1');
+        wayPointHelpHandler.call(this,states.WP1_MODE);
     },
     'AnswerIntent': function ( ) {
-        // TODO: Impl this
+        console.log('AnswerIntent');
+    
+        const intent = this.event.request.intent;
+        const numStr = intent.slots.numeric.value;
+        const location = this.attributes['location'][1];
+        const challenge = this.attributes['challenge'][1];
+        const scence = setting.get(1,location); 
+
+        let msg = [];
+        let repromptMsg = [];
+        if (intent.slots.numeric.confirmationStatus !== 'CONFIRMED') { 
+            if (intent.slots.numeric.confirmationStatus !== 'DENIED') {
+                // not confirmed
+                msg = [
+                    `Are you sure ${numStr} is the correct answer?`,
+                    'to repeat the question, just say repeat.'
+                ]; 
+                repromptMsg = msg;
+                this.emit(':confirmSlot', 'numeric', arrayToSpeech(msg), arrayToSpeech(repromptMsg));
+            } else {
+                // denied
+                msg = [
+                    'Say my answer is one for the first answer etc.',
+                    'to repeat the question, just say repeat.'
+                ]; 
+                repromptMsg = msg;
+                this.emit(':elicitSlot', 'numeric', arrayToSpeech(msg), arrayToSpeech(repromptMsg));
+            }
+        } else {
+            // all confirmed
+            const num = parseInt(numStr);
+            // num should be 1 <= n <= 4
+            if (num == challenge.i + 1) {
+                this.attributes['pass'] = true;
+                msg = [
+                    scence.LAST,
+                    ' ',
+                    'well done!',
+                    'to continue the journey, just say move on.'
+                ];
+                repromptMsg = [
+                    'to continue the journey, just say move on.'
+                ];
+            } else {
+                msg = [
+                    scence.MORE,
+                    ' ',
+                    'say try again to give it another shot, or stop to exit the game.'
+                ];
+                repromptMsg = [
+                    'to continue the journey, just say move on.'
+                ];
+            }
+            // emitResponse.call here ...
+            const speak = arrayToSpeech(msg);
+            const textCard = removeSSML(speak);
+            const titleCard = `Challenge at the ${location}`;
+            const reprompt = arrayToSpeech(repromptMsg);
+            emitResponse.call(this,titleCard,textCard,speak,reprompt);
+        }
     },
-    'AskInfoIntent' : function () {
-
+    'StartGameIntent': function () {
+        console.log('StartGameIntent at wp 1');
+        if (this.attributes['pass'] == true) {
+            this.handler.state = states.WP2_MODE;
+            this.emitWithState('SayIntro');
+        } else {
+            const msg = [
+                'You have to solve the puzzle before moving on.'
+            ];
+            const location = this.attributes['location'][1];
+            const speak = arrayToSpeech(msg);
+            const textCard = removeSSML(speak);
+            const titleCard = `Challenge at the ${location}`;
+            const reprompt = genericDialog.HELP[0];
+            emitResponse.call(this,titleCard,textCard,speak,reprompt);
+        }
     },
-    'TalkToIntent' : function () {
-        // as long as the player trigger a talk intent, just assume is talking to the npc.
-        console.log(this.event.request);
-        console.log(this.event.request.intent.slots);
-
-        const scence = setting.get(0,location);
-        const npc = scence.CHALLENGE;
-        const npcDialog = npcList['NPC_LIST'].npc;
-
-        let msg = npcDialog.INTRO;
-
-
-        const titleCard = 'Challenge at the ' + location;
-        const textCard = msg.join(', ');
-
-        const speak = msg.map(addPTag).join('');
-        const reprompt = 'what are you going to do next?';
-        emitResponse.call(this,titleCard,textCard,speak,reprompt);        
+    'RetryIntent': function () {
+        console.log('Retry Intent at  waypoint 1');
+        wayPointRetryHandler.call(this,states.WP1_MODE);
     },
     'Unhandled' : function () {
-        // NOTE: All those not needed intent like BuyIntent handles here
-        // TODO: Impl later
+        console.log('Unhandled Intent at  waypoint 1');
+        this.emit('Unhandled');
     },
-    'SayIntro': function (location) {
+    'RepeatIntent': function () {
+        console.log('RepeatIntent');
+        wayPointRepeatHandler.call(this,states.WP1_MODE);
+    },
+    'TalkToIntent': function () {
+        console.log('TalkToIntent');
+        talkToHandler.call(this,states.WP1_MODE);
+    },
+    'SayIntro': function () {
         // the first dialog
         console.log(this.event.request);
         console.log(this.event.request.intent.slots);
-
-        const scence = setting.get(0,location); 
-        const npc = scence.CHALLENGE;
-
-        let msg = []; 
-        //msg.push('you arrived at the ' + this.attributes['location'][1]);
-        msg.push('you arrived at the ' + location); // this doesn't help that much
-        msg.push(scence.DESC.map(addPTag).join());
-        msg.push('what would you like to do?');
-        msg.push('you can talk to the ' + npc);
-        msg.push('and you can always ask for help.');
-
-        const titleCard = 'Challenge at the ' + location;
-        const textCard = msg.join(', ');
-
-        const speak = msg.map(addPTag).join('');
-        const reprompt = genericDialog.REPROMPT[0];
-        emitResponse.call(this,titleCard,textCard,speak,reprompt);
+        introHandler.call(this,states.WP1_MODE);
+    },
+    'AMAZON.StopIntent' : function() {
+        this.emit('AMAZON.StopIntent')
+    },
+    'AMAZON.CancelIntent' : function() {
+        this.emit('AMAZON.CancelIntent')
     }
 });
 
 var handlers = {
+    'NewSession': function () {
+        // this launch when user utter ask, tell etc. that open a new session
+        console.log('NewSession');
+        setSessionVar.call(this);
+        this.emit('SayHello');
+    },
     'LaunchRequest': function () {
+        console.log('LaunchRequest')
         setSessionVar.call(this);
         this.emit('SayHello');
     },
-    'HelloWorldIntent': function () {
-        console.log(this.event.request);
-        console.log(this.event.request.intent.slots);
-
-        // leave this for debugging for now
-        this.emit('SayHello');
-    },
-    'AskNameIntent': function() {
-        console.log(this.event.request);
-        console.log(this.event.request.intent.slots);
-
-        const intentName = 'AskNameIntent';
-        const textCard = 'AskNameIntent';
-        const speak = '<p>My name is Boko. I am the owner of this Blind Duck Pub.</p>';
-        const reprompt = 'Want a drink?';
-        emitResponse.call(this,intentName,textCard,speak,reprompt);
-    },
-    'ActionIntent' : function () {
-        // TODO: Impl this
-    },
-    'AskInfoIntent': function() {
-        console.log(this.event.request);
-        console.log(this.event.request.intent.slots);
-
-        setSessionVar.call(this);
-
-        const location = this.attributes['location'];
-        let msg = []; 
-        msg.push('You need to travel to the ' + location[1]);
-        msg.push('then the ' + location[2]);
-        msg.push('and finally to the Castle Ruin to recover the treasure');
-        msg.push('beware of the dangers along the way');
-        msg.push('that is all I know');
-        msg.push('when you are ready, just said leave the pub');
-
-        const titleCard = 'Asking for more information';
-        const textCard = msg.join(', ');
-
-        const speak = msg.map(addPTag).join('');
-        const reprompt = 'Are you ready to begin your adventure? Just say leave the pub.';
-        emitResponse.call(this,titleCard,textCard,speak,reprompt);
-    },
-    'TalkToIntent': function() {
-        setSessionVar.call(this); // ensure the session variables are in place
-        console.log(this.event.request);
-        console.log(this.event.request.intent.slots);
-
-        // ref: https://github.com/alexa/alexa-cookbook/blob/master/handling-responses/dialog-directive-delegate/sample-nodejs-fact/src/index.js
-        if (this.event.request.dialogState == "STARTED" || this.event.request.dialogState == "IN_PROGRESS"){
-            // ready to delegate it back to the Dialog (Dialog.Delegate)
-            this.context.succeed({
-                "response": {
-                    "directives": [
-                        {
-                            "type": "Dialog.Delegate"
-                        }
-                    ],
-                    "shouldEndSession": false
-                },
-                "sessionAttributes": this.attributes
-            });
-        } else {
-            // here you have everything
-            const npc = this.event.request.intent.slots.npc.value.toLowerCase();
-            const interaction = this.attributes['interaction'];
-
-            const titleCard = 'Talk to ' + npc;
-            const reprompt = 'what do you want to do next?';
-
-            let textCard = '';
-            let speak = '';
-            const npcDialog = npcList['NPC_LIST'][npc];
-            switch((interaction.filter(x => x['object'] == npc)).length) {
-                case 0:
-                    speak = npcDialog['INTRO'].map(addPTag).join('');
-                    textCard = npcDialog['INTRO'].join(', ');
-                    interaction.push({'action':'talk', 'object':npc})                    
-                    break;
-                case 1:
-                    speak = npcDialog['MORE'].map(addPTag).join('');
-                    textCard = npcDialog['MORE'].join(', ');
-                    interaction.push({'action':'talk', 'object':npc})
-
-                    break;
-                default:
-                    speak = npcDialog['LAST'].map(addPTag).join('');
-                    textCard = npcDialog['LAST'].join(', ');
-                    interaction.push({'action':'talk', 'object':npc})
-            }
-            //console.log(JSON.stringify(interaction.pop()));
-            console.log(JSON.stringify(interaction));
-            emitResponse.call(this,titleCard,textCard,speak,reprompt);            
-        }
-    },
-    'BuyIntent': function () {
-        console.log(this.event.request);
-        console.log(this.event.request.intent.slots);
-
-        // need to use :elicitSlot here
-        const intentName = 'BuyIntent';
-        const textCard = 'BuyIntent';
-        const speak = '<p>Good, your drink is coming.</p>';
-        const reprompt = 'what do you want to do next?';
-        emitResponse.call(this,intentName,textCard,speak,reprompt);        
-    },
-    'LeaveIntent': function () {
-        setSessionVar.call(this); // ensure the session variables are in place
-        console.log(this.event.request);
-        console.log(this.event.request.intent.slots);
-
+    'StartGameIntent': function () {
+        console.log('StartGameIntent');
         this.handler.state = states.WP1_MODE;
-        this.emitWithState('SayIntro', this.attributes['location'][1]);
+        this.emitWithState('SayIntro');
     },
     'SayHello': function () {
-        //const msg1 = 'Welcome to the ' + setting['COUNTRY_NAME'] + ' at ' + setting['COUNTRY_NAME'] + '.';
-        //const msg2 = 'How may I help you?';
-
-        const msg = [
-            'Its a gloomy day, you have been walking through the foggy moors of Kidlematica, the soil damp from the recent rainfall.',
-            'As you enter the village you see a tavern; the \'Blind Duck Pub\', you enter in hopes of finding a bit of rest.',
-            'The smell of greasy meat, and cheap drinks fills your nose.',
-            'A small fire in the fireplace dances about creating sinister shadows of the other sparse patrons, you look over to the bar, where the barkeep waves you over.',
-            'You walk up and take a seat on the vacant stool as he pours you a glass of milk, you take it eagerly as your travels have left you very thirsty.',
-            'As you drink the barkeep tells you his name is Boko, and he has a bit of work for you.',
-            'What would you like to do?',
-            'if not sure, just say help'
-        ];
-
-        const titleCard = 'Welcome to the Blind Duck Pub';
-        const textCard = msg.join(', ');
-
-        const speak = msg.map(addPTag).join('');
+        const msg = setting.WELCOME_MSG;
+        const speak = arrayToSpeech(msg);
+        const textCard = removeSSML(speak);
+        const titleCard = `Welcome to the ${setting.PUB_NAME}`;
         const reprompt = genericDialog.HELP[0];
         emitResponse.call(this,titleCard,textCard,speak,reprompt);
-
-        //this.emit(':responseReady');
+    },
+    'TalkToIntent': function () {
+        console.log('TalkIntent');
+        const npcList = npc.NPC_LIST;
+        const msg = npcList.boko.INTRO;
+        const speak = arrayToSpeech(msg);
+        const textCard = removeSSML(speak);
+        const titleCard = `Welcome to the ${setting.PUB_NAME}`;
+        const reprompt = genericDialog.HELP[0];
+        emitResponse.call(this,titleCard,textCard,speak,reprompt);
+    },
+    'RepeatIntent': function () {
+        console.log('RepeatIntent');
+        this.emit('TalkToIntent');
     },
     'SessionEndedRequest' : function() {
         console.log('Session ended with reason: ' + this.event.request.reason);
@@ -305,55 +340,33 @@ var handlers = {
         console.log(this.event.request);
         console.log(this.event.request.intent.slots);
 
-        this.response.speak('Bye');
+        this.response.speak('Bye. Come back when you have time.');
         this.emit(':responseReady');
     },
     'AMAZON.HelpIntent' : function() {
-        setSessionVar.call(this);
+        console.log('Help');
 
-        console.log(this.event.request);
-        console.log(this.event.request.intent.slots);
+        const msg = [
+            'How about just say leave the pub to start the journey, or go talk to  Boko for more information?'
+        ]; 
 
-        let msg = []; 
-        if (this.attributes['firstHelp'] == true) {
-            // give the long version of help
-            //msg.push('you can always ask for help in ' + setting['COUNTRY_NAME']);
-            msg.push(`you can always ask for help in ${setting['COUNTRY_NAME']}.`);
-            msg.push('for example');
-            msg.push('just say what should I do');
-            msg.push('or where should I go');
-            msg.push('or just say HELP');
-            msg.push("why don't you try to talk to Boko?");
-            msg.push('just say go talk to Boko');
-
-            this.attributes['firstHelp'] = false;
-        } else {
-            // here should be stateful / context related help
-            // do it later
-            msg.push("why don't you try to talk to Boko at the " + setting['COUNTRY_NAME']);
-            msg.push('just say go talk to Boko');
-        }
-
-        const titleCard = 'Asking for help';
-        const textCard = msg.join(', ');
-
-        const speak = msg.map(addPTag).join('');
-        const reprompt = genericDialog.HELP[0];
+        const speak = arrayToSpeech(msg);
+        const textCard = removeSSML(speak);
+        const titleCard = 'Help';
+        const reprompt = speak;
         emitResponse.call(this,titleCard,textCard,speak,reprompt);
-
     },
     'AMAZON.CancelIntent' : function() {
         console.log(this.event.request);
         console.log(this.event.request.intent.slots);
 
-        this.response.speak('Bye');
+        this.response.speak('Alright. See you around.');
         this.emit(':responseReady');
     },
     'Unhandled' : function() {
         console.log(this.event.request);
         console.log(this.event.request.intent.slots);
 
-        this.response.speak("Sorry, I didn't get that. You can try: 'alexa, hello world'" +
-            " or 'alexa, ask hello world my name is awesome Aaron'");
+        this.response.speak("Sorry, I didn't get that. You can always try help.");
     }
 };
