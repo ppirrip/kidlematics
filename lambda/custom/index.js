@@ -24,6 +24,25 @@ const states = {
     RUIN_MODE: '_RUIN_MODE'
 };
 
+// This should be absobed in the state structure
+function stateToIdx(state) {
+    let idx = 1; // default
+    switch(state) {
+        case states.WP1_MODE:
+            idx = 1;
+            break;
+        case states.WP2_MODE:
+            idx = 2;
+            break; 
+        case states.RUIN_MODE:
+            idx = 3;
+            break; 
+        default:
+            idx = 1;          
+    }
+    return idx;
+}
+
 function setSessionVar() {
     if(Object.keys(this.attributes).length === 0) {
         //const waypoint1 = setting.get(1)[rand(3)].LOCATION;
@@ -32,10 +51,11 @@ function setSessionVar() {
         // use constant for now
         const waypoint1 = setting.get(1)[0].LOCATION;
         const waypoint2 = setting.get(2)[0].LOCATION;
+        const ruin = setting.get(3)[0].LOCATION;
 
         this.attributes['firstHelp'] = true; 
         this.attributes['interaction'] = [];
-        this.attributes['location'] = ['Pub',waypoint1,waypoint2,'Ruin'];
+        this.attributes['location'] = ['Pub',waypoint1,waypoint2,ruin];
         this.attributes['challenge'] = [
             {/* pub scence, no challenge */},
             questionList.get(0), // use constant for now
@@ -53,7 +73,9 @@ function answerPrompt(ans) {
 }
 
 function introHandler(state) {
-    const idx = state == states.WP1_MODE ? 1 : 2;
+    //const idx = state == states.WP1_MODE ? 1 : 2;
+    const idx = stateToIdx(state);
+
     const location = this.attributes['location'][idx];
     const scence = setting.get(idx,location);
     const challenge = this.attributes['challenge'][idx]; 
@@ -77,7 +99,9 @@ function introHandler(state) {
 }
 
 function wayPointHelpHandler(state) {
-    const idx = state == states.WP1_MODE ? 1 : 2;
+    //const idx = state == states.WP1_MODE ? 1 : 2;
+    const idx = stateToIdx(state);
+
     const location = this.attributes['location'][idx];
     let msg = [
         'Say my answer is one for the first answer etc.',
@@ -92,15 +116,22 @@ function wayPointHelpHandler(state) {
 }
 
 function wayPointRepeatHandler(state) {
-    const idx = state == states.WP1_MODE ? 1 : 2;
+    //const idx = state == states.WP1_MODE ? 1 : 2;
+    const idx = stateToIdx(state);
+
     const challenge = this.attributes['challenge'][idx];
     const location = this.attributes['location'][idx];
 
-    let msg = [
-        challenge.q,
-        answerPrompt(challenge.a),
-        'to repeat the question, just say repeat the question.'
-    ]; 
+    let msg = []
+    if (this.attributes['pass'] == false) {
+        msg = [
+            challenge.q,
+            answerPrompt(challenge.a),
+            'to repeat the question, just say repeat the question.'
+        ]; 
+    } else {
+        msg = ['You have solved the challenge. Just say move on to continue, or try again for another quiz.']
+    }
     const speak = arrayToSpeech(msg);
     const textCard = removeSSML(speak);
     const titleCard = `Challenge at the ${location}`;
@@ -109,7 +140,9 @@ function wayPointRepeatHandler(state) {
 }
 
 function wayPointRetryHandler(state) {
-    const idx = state == states.WP1_MODE ? 1 : 2;
+    //const idx = state == states.WP1_MODE ? 1 : 2;
+    const idx = stateToIdx(state);
+
     this.attributes['pass'] = false;
     // get a new challenge
     // should be random - const for now
@@ -119,7 +152,9 @@ function wayPointRetryHandler(state) {
 }
 
 function talkToHandler(state) {
-    const idx = state == states.WP1_MODE ? 1 : 2;
+    //const idx = state == states.WP1_MODE ? 1 : 2;
+    const idx = stateToIdx(state);
+
     const location = this.attributes['location'][idx];
 
     let msg = [
@@ -137,64 +172,19 @@ function talkToHandler(state) {
     emitResponse.call(this,titleCard,textCard,speak,reprompt);
 }
 
-// need more handler later
-exports.handler = function(event, context) {
-    var alexa = Alexa.handler(event, context);
-    alexa.registerHandlers(handlers, waypoint_1_Handlers,waypoint_2_Handlers);
-    alexa.execute();
-};
 
-const waypoint_2_Handlers =  Alexa.CreateStateHandler(states.WP2_MODE, {
-    'SayIntro': function () {
-        console.log(this.event.request);
-        console.log(this.event.request.intent.slots);
+function answerHandler(state) {
+    //const idx = state == states.WP1_MODE ? 1 : 2;
+    const idx = stateToIdx(state);
 
-        introHandler.call(this,states.WP2_MODE);
-    },
-    'RepeatIntent': function () {
-        console.log('RepeatIntent');
-        wayPointRepeatHandler.call(this,states.WP2_MODE);
-    },
-    'RetryIntent': function () {
-        console.log('Retry Intent at  waypoint 2');
-        wayPointRetryHandler.call(this,states.WP2_MODE);
-    },
-    'TalkToIntent': function () {
-        console.log('TalkToIntent');
-        talkToHandler.call(this,states.WP2_MODE);
-    },
-    'AMAZON.HelpIntent': function () {
-        console.log('HelpIntent at waypoint 2');
-        wayPointHelpHandler.call(this,states.WP2_MODE);
-    },
-    'Unhandled' : function () {
-        console.log('Unhandled Intent at  waypoint 2');
-        this.emit('Unhandled');
-    },
-    'AMAZON.StopIntent' : function() {
-        this.emit('AMAZON.StopIntent')
-    },
-    'AMAZON.CancelIntent' : function() {
-        this.emit('AMAZON.CancelIntent')
-    }
-});
+    const location = this.attributes['location'][idx];
+    const challenge = this.attributes['challenge'][idx];
+    const scence = setting.get(idx,location); 
 
-// So this acts like  a mini game
-const waypoint_1_Handlers =  Alexa.CreateStateHandler(states.WP1_MODE, {
-    'AMAZON.HelpIntent': function () {
-        console.log('HelpIntent at waypoint 1');
-        wayPointHelpHandler.call(this,states.WP1_MODE);
-    },
-    'AnswerIntent': function ( ) {
-        console.log('AnswerIntent');
-    
-        const intent = this.event.request.intent;
-        const numStr = intent.slots.numeric.value;
-        const location = this.attributes['location'][1];
-        const challenge = this.attributes['challenge'][1];
-        const scence = setting.get(1,location); 
+    const intent = this.event.request.intent;
+    const numStr = intent.slots.numeric.value;
 
-        let msg = [];
+    let msg = [];
         let repromptMsg = [];
         if (intent.slots.numeric.confirmationStatus !== 'CONFIRMED') { 
             if (intent.slots.numeric.confirmationStatus !== 'DENIED') {
@@ -218,6 +208,7 @@ const waypoint_1_Handlers =  Alexa.CreateStateHandler(states.WP1_MODE, {
             // all confirmed
             const num = parseInt(numStr);
             // num should be 1 <= n <= 4
+            // If I am expecting a left / right answer I have to adj it here
             if (num == challenge.i + 1) {
                 this.attributes['pass'] = true;
                 msg = [
@@ -246,23 +237,133 @@ const waypoint_1_Handlers =  Alexa.CreateStateHandler(states.WP1_MODE, {
             const reprompt = arrayToSpeech(repromptMsg);
             emitResponse.call(this,titleCard,textCard,speak,reprompt);
         }
+}
+
+function nextStateHandler(curState,nextState) {
+    const idx = stateToIdx(curState);
+    const location = this.attributes['location'][idx];
+
+    if (this.attributes['pass'] == true) {
+        this.handler.state = nextState; //states.RUIN_MODE;
+        this.emitWithState('SayIntro');
+    } else {
+        const msg = [
+            'You have to solve the puzzle before moving on.'
+        ];
+        const location = this.attributes['location'][idx];
+        const speak = arrayToSpeech(msg);
+        const textCard = removeSSML(speak);
+        const titleCard = `Challenge at the ${location}`;
+        const reprompt = genericDialog.HELP[0];
+        emitResponse.call(this,titleCard,textCard,speak,reprompt);
+    }
+}
+
+// need more handler later
+exports.handler = function(event, context) {
+    var alexa = Alexa.handler(event, context);
+    alexa.registerHandlers(handlers, waypoint_1_Handlers,waypoint_2_Handlers, ruin_Handlers);
+    alexa.execute();
+};
+
+const ruin_Handlers =  Alexa.CreateStateHandler(states.RUIN_MODE, {
+    'SayIntro': function () {
+        console.log(this.event.request);
+        console.log(this.event.request.intent.slots);
+        introHandler.call(this,states.RUIN_MODE);
+    },
+    'AnswerIntent': function ( ) {
+        console.log('AnswerIntent');
+        answerHandler.call(this, states.RUIN_MODE);
+    },
+    'RepeatIntent': function () {
+        console.log('RepeatIntent');
+        wayPointRepeatHandler.call(this,states.RUIN_MODE);
+    },
+    'RetryIntent': function () {
+        console.log('Retry Intent at  waypoint 2');
+        wayPointRetryHandler.call(this,states.RUIN_MODE);
+    },
+    'TalkToIntent': function () {
+        console.log('TalkToIntent');
+        talkToHandler.call(this,states.RUIN_MODE);
+    },
+    'StartGameIntent': function () {
+        console.log('StartGameIntent at ruin');
+        this.emit('NewSession');
+    },
+    'AMAZON.HelpIntent': function () {
+        console.log('HelpIntent at waypoint ruin');
+        wayPointHelpHandler.call(this,states.RUIN_MODE);
+    },
+    'Unhandled' : function () {
+        console.log('Unhandled Intent at ruin');
+        this.emit('Unhandled');
+    },
+    'AMAZON.StopIntent' : function() {
+        this.emit('AMAZON.StopIntent')
+    },
+    'AMAZON.CancelIntent' : function() {
+        this.emit('AMAZON.CancelIntent')
+    }
+});
+
+const waypoint_2_Handlers =  Alexa.CreateStateHandler(states.WP2_MODE, {
+    'SayIntro': function () {
+        console.log(this.event.request);
+        console.log(this.event.request.intent.slots);
+
+        introHandler.call(this,states.WP2_MODE);
+    },
+    'AnswerIntent': function ( ) {
+        console.log('AnswerIntent');
+        answerHandler.call(this, states.WP2_MODE);
+    },
+    'RepeatIntent': function () {
+        console.log('RepeatIntent');
+        wayPointRepeatHandler.call(this,states.WP2_MODE);
+    },
+    'RetryIntent': function () {
+        console.log('Retry Intent at  waypoint 2');
+        wayPointRetryHandler.call(this,states.WP2_MODE);
+    },
+    'TalkToIntent': function () {
+        console.log('TalkToIntent');
+        talkToHandler.call(this,states.WP2_MODE);
+    },
+    'StartGameIntent': function () {
+        console.log('StartGameIntent at wp 2');
+        nextStateHandler.call(this,states.WP2_MODE,states.RUIN_MODE);
+    },
+    'AMAZON.HelpIntent': function () {
+        console.log('HelpIntent at waypoint 2');
+        wayPointHelpHandler.call(this,states.WP2_MODE);
+    },
+    'Unhandled' : function () {
+        console.log('Unhandled Intent at  waypoint 2');
+        this.emit('Unhandled');
+    },
+    'AMAZON.StopIntent' : function() {
+        this.emit('AMAZON.StopIntent')
+    },
+    'AMAZON.CancelIntent' : function() {
+        this.emit('AMAZON.CancelIntent')
+    }
+});
+
+// So this acts like  a mini game
+const waypoint_1_Handlers =  Alexa.CreateStateHandler(states.WP1_MODE, {
+    'AMAZON.HelpIntent': function () {
+        console.log('HelpIntent at waypoint 1');
+        wayPointHelpHandler.call(this,states.WP1_MODE);
+    },
+    'AnswerIntent': function ( ) {
+        console.log('AnswerIntent');
+        answerHandler.call(this, states.WP1_MODE);
     },
     'StartGameIntent': function () {
         console.log('StartGameIntent at wp 1');
-        if (this.attributes['pass'] == true) {
-            this.handler.state = states.WP2_MODE;
-            this.emitWithState('SayIntro');
-        } else {
-            const msg = [
-                'You have to solve the puzzle before moving on.'
-            ];
-            const location = this.attributes['location'][1];
-            const speak = arrayToSpeech(msg);
-            const textCard = removeSSML(speak);
-            const titleCard = `Challenge at the ${location}`;
-            const reprompt = genericDialog.HELP[0];
-            emitResponse.call(this,titleCard,textCard,speak,reprompt);
-        }
+        nextStateHandler.call(this,states.WP1_MODE,states.WP2_MODE);
     },
     'RetryIntent': function () {
         console.log('Retry Intent at  waypoint 1');

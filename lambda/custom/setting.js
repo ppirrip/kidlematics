@@ -78,6 +78,16 @@ module.exports = {
                 'MORE': [],
                 'LAST': []
             },
+        ],
+        [
+            {
+                'LOCATION': 'ruin',
+                'CHALLENGE': '',
+                'DESC': ['Finally you are at the ruin where the stolen treasure is.'],
+                'INTRO': ['Before you can take it back. You have to do something'],
+                'MORE': ['you failed'],
+                'LAST': ['you got it!']
+            }
         ]
     ]
 };
